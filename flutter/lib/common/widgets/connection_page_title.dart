@@ -11,12 +11,12 @@ Widget getConnectionPageTitle(BuildContext context, bool isWeb) {
           child: Row(
         children: [
           AutoSizeText(
-            translate('Control Remote Desktop'),
+            translate('Connect to Remote'),
             maxLines: 1,
             style: Theme.of(context)
                 .textTheme
                 .titleLarge
-                ?.merge(TextStyle(height: 1)),
+                ?.merge(TextStyle(height: 1, fontWeight: FontWeight.w700)),
           ).marginOnly(right: 4),
           Tooltip(
             waitDuration: Duration(milliseconds: 300),

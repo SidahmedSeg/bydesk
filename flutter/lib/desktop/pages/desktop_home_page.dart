@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
@@ -81,13 +82,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final isOutgoingOnly = bind.isOutgoingOnly();
     final children = <Widget>[
       if (!isOutgoingOnly) buildPresetPasswordWarning(),
-      if (bind.isCustomClient())
-        Align(
-          alignment: Alignment.center,
-          child: loadPowered(context),
-        ),
       Align(
-        alignment: Alignment.center,
+        alignment: Alignment.centerLeft,
         child: loadLogo(),
       ),
       buildTip(context),
@@ -131,7 +127,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     return ChangeNotifierProvider.value(
       value: gFFI.serverModel,
       child: Container(
-        width: isIncomingOnly ? 280.0 : 200.0,
+        width: isIncomingOnly ? 280.0 : 240.0,
         color: Theme.of(context).colorScheme.background,
         child: Stack(
           children: [
@@ -314,9 +310,12 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AutoSizeText(
-                    translate("One-time Password"),
+                    translate("One-time Password").toUpperCase(),
                     style: TextStyle(
-                        fontSize: 14, color: textColor?.withOpacity(0.5)),
+                        fontSize: 12,
+                        letterSpacing: 0.6,
+                        fontWeight: FontWeight.w600,
+                        color: textColor?.withOpacity(0.5)),
                     maxLines: 1,
                   ),
                   Row(
@@ -347,15 +346,16 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                           onPressed: () => bind.mainUpdateTemporaryPassword(),
                           child: Tooltip(
                             message: translate('Refresh Password'),
-                            child: Obx(() => RotatedBox(
-                                quarterTurns: 2,
-                                child: Icon(
-                                  Icons.refresh,
-                                  color: refreshHover.value
-                                      ? textColor
-                                      : Color(0xFFDDDDDD),
-                                  size: 22,
-                                ))),
+                            child: Obx(() => SvgPicture.asset(
+                                  'assets/refresh_arrow2.svg',
+                                  width: 18,
+                                  height: 18,
+                                  colorFilter: ColorFilter.mode(
+                                      refreshHover.value
+                                          ? (textColor ?? MyTheme.accent)
+                                          : const Color(0xFFB6B6B6),
+                                      BlendMode.srcIn),
+                                )),
                           ),
                           onHover: (value) => refreshHover.value = value,
                         ).marginOnly(right: 8, top: 4),
@@ -364,12 +364,15 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                           child: Tooltip(
                             message: translate('Change Password'),
                             child: Obx(
-                              () => Icon(
-                                Icons.edit,
-                                color: editHover.value
-                                    ? textColor
-                                    : Color(0xFFDDDDDD),
-                                size: 22,
+                              () => SvgPicture.asset(
+                                'assets/edit.svg',
+                                width: 18,
+                                height: 18,
+                                colorFilter: ColorFilter.mode(
+                                    editHover.value
+                                        ? (textColor ?? MyTheme.accent)
+                                        : const Color(0xFFB6B6B6),
+                                    BlendMode.srcIn),
                               ).marginOnly(right: 8, top: 4),
                             ),
                           ),
@@ -437,7 +440,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       final isToUpdate = (isWindows || isMacOS) && bind.mainIsInstalled();
       String btnText = isToUpdate ? 'Update' : 'Download';
       GestureTapCallback onPressed = () async {
-        final Uri url = Uri.parse('https://rustdesk.com/download');
+        final Uri url = Uri.parse('https://bydesk.app/download');
         await launchUrl(url);
       };
       if (isToUpdate) {
@@ -610,8 +613,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  Color.fromARGB(255, 226, 66, 188),
-                  Color.fromARGB(255, 244, 114, 124),
+                  Color(0xFF1246E6),
+                  Color(0xFF4F8CFF),
                 ],
               )),
               padding: EdgeInsets.all(20),

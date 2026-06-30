@@ -158,7 +158,7 @@ class _PeerCardState extends State<_PeerCard>
             height: isPortrait ? 50 : null,
             child: Stack(
               children: [
-                getPlatformImage(peer.platform, size: isPortrait ? 38 : 30)
+                byDeskPlatformBadge(peer.platform, size: isPortrait ? 38 : 30)
                     .paddingAll(6),
                 if (_shouldBuildPasswordIcon(peer))
                   Positioned(
@@ -313,7 +313,7 @@ class _PeerCardState extends State<_PeerCard>
                               Container(
                                 padding: const EdgeInsets.all(6),
                                 child:
-                                    getPlatformImage(peer.platform, size: 60),
+                                    byDeskPlatformBadge(peer.platform, size: 60),
                               ),
                               Row(
                                 children: [
@@ -1578,4 +1578,59 @@ void connectInPeerTab(BuildContext context, Peer peer, PeerTabIndex tab,
       isViewCamera: isViewCamera,
       isTcpTunneling: isTcpTunneling,
       isRDP: isRDP);
+}
+
+// ByDesk: rounded text badge (WIN/MAC/NIX/AND) in place of the platform image.
+Widget byDeskPlatformBadge(String platform, {double size = 30}) {
+  String label;
+  Color bg;
+  Color fg;
+  switch (platform) {
+    case kPeerPlatformWindows:
+      label = 'WIN';
+      bg = const Color(0xFFE7ECFF);
+      fg = const Color(0xFF1246E6);
+      break;
+    case kPeerPlatformMacOS:
+      label = 'MAC';
+      bg = const Color(0xFFEDEEF2);
+      fg = const Color(0xFF555B66);
+      break;
+    case kPeerPlatformLinux:
+      label = 'NIX';
+      bg = const Color(0xFFFFF0DD);
+      fg = const Color(0xFFC9760A);
+      break;
+    case kPeerPlatformAndroid:
+      label = 'AND';
+      bg = const Color(0xFFE4F7EA);
+      fg = const Color(0xFF1B9E47);
+      break;
+    default:
+      label = platform.isNotEmpty
+          ? platform
+              .substring(0, platform.length >= 3 ? 3 : platform.length)
+              .toUpperCase()
+          : '?';
+      bg = const Color(0xFFEDEEF2);
+      fg = const Color(0xFF555B66);
+  }
+  return Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(size * 0.28),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        fontSize: size * 0.30,
+        fontWeight: FontWeight.w800,
+        color: fg,
+        letterSpacing: 0.3,
+      ),
+    ),
+  );
 }

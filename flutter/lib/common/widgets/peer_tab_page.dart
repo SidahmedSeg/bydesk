@@ -169,8 +169,25 @@ class _PeerTabPageState extends State<PeerTabPage>
                         decoration: (hover.value
                             ? (selected ? decoBorder : deco)
                             : (selected ? decoBorder : null)),
-                        child: Icon(model.tabIcon(t), color: color)
-                            .paddingSymmetric(horizontal: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _byDeskTabIcon(t, color),
+                            const SizedBox(width: 7),
+                            Text(
+                              _byDeskTabLabel(t, model),
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 14,
+                                height: 1.0,
+                                fontWeight: selected
+                                    ? FontWeight.w500
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ).paddingSymmetric(horizontal: 10, vertical: 6),
                       ).paddingSymmetric(horizontal: 4),
                       onTap: isOptionFixed(kOptionPeerTabIndex)
                           ? null
@@ -183,6 +200,38 @@ class _PeerTabPageState extends State<PeerTabPage>
                     ),
                   )));
         }).toList());
+  }
+
+  // ByDesk: custom SVG icon per peer tab (recent/fav/lan/ab/group).
+  Widget _byDeskTabIcon(int t, Color? color) {
+    const map = {
+      0: 'assets/recent.svg',
+      1: 'assets/favorite.svg',
+      2: 'assets/discovered.svg',
+      3: 'assets/contacts.svg',
+      4: 'assets/accessible_devices.svg',
+    };
+    final asset = map[t];
+    final c = color ?? MyTheme.accent;
+    if (asset != null) {
+      return SvgPicture.asset(asset,
+          width: 16,
+          height: 16,
+          colorFilter: ColorFilter.mode(c, BlendMode.srcIn));
+    }
+    return Icon(gFFI.peerTabModel.tabIcon(t), color: c, size: 18);
+  }
+
+  String _byDeskTabLabel(int t, PeerTabModel model) {
+    const map = {
+      0: 'Recent',
+      1: 'Saved',
+      2: 'Discover',
+      3: 'Address Book',
+      4: 'Accessible Devices',
+    };
+    final key = map[t];
+    return key != null ? translate(key) : model.tabTooltip(t);
   }
 
   Widget _createPeersView() {

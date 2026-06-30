@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
@@ -36,8 +37,8 @@ const double _kContentHSubMargin = _kContentHMargin + 33;
 const double _kCheckBoxLeftMargin = 10;
 const double _kRadioLeftMargin = 10;
 const double _kListViewBottomMargin = 15;
-const double _kTitleFontSize = 20;
-const double _kContentFontSize = 15;
+const double _kTitleFontSize = 16;
+const double _kContentFontSize = 13;
 const Color _accentColor = MyTheme.accent;
 const String _kSettingPageControllerTag = 'settingPageController';
 const String _kSettingPageTabKeyTag = 'settingPageTabKey';
@@ -369,28 +370,61 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
             }
             selectedTab.value = tab.key;
           },
-          child: Row(children: [
-            Container(
-              width: 4,
-              height: _kTabHeight * 0.7,
-              color: selected ? _accentColor : null,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: selected ? _accentColor.withOpacity(0.10) : null,
+              borderRadius: BorderRadius.circular(10),
             ),
-            Icon(
-              selected ? tab.selected : tab.unselected,
-              color: selected ? _accentColor : null,
-              size: 20,
-            ).marginOnly(left: 13, right: 10),
-            Text(
-              translate(tab.label),
-              style: TextStyle(
-                  color: selected ? _accentColor : null,
-                  fontWeight: FontWeight.w400,
-                  fontSize: _kContentFontSize),
-            ),
-          ]),
+            child: Row(children: [
+              Container(
+                width: 3,
+                height: _kTabHeight * 0.5,
+                decoration: BoxDecoration(
+                  color: selected ? _accentColor : Colors.transparent,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              _settingTabIcon(tab, selected).marginOnly(left: 12, right: 10),
+              Text(
+                translate(tab.label),
+                style: TextStyle(
+                    color: selected ? _accentColor : null,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    fontSize: _kContentFontSize),
+              ),
+            ]),
+          ),
         ),
       );
     });
+  }
+
+  // ByDesk: custom SVG per settings tab, tinted (gray -> brand blue when selected).
+  Widget _settingTabIcon(_TabInfo tab, bool selected) {
+    const svgMap = {
+      'General': 'assets/setting_general.svg',
+      'Security': 'assets/setting_security.svg',
+      'Network': 'assets/setting_network.svg',
+      'Display': 'assets/setting_display.svg',
+      'Account': 'assets/setting_account.svg',
+      'About': 'assets/setting_about.svg',
+    };
+    final asset = svgMap[tab.label];
+    final color = selected ? _accentColor : const Color(0xFF8A8F99);
+    if (asset != null) {
+      return SvgPicture.asset(
+        asset,
+        width: 20,
+        height: 20,
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      );
+    }
+    return Icon(
+      selected ? tab.selected : tab.unselected,
+      color: selected ? _accentColor : null,
+      size: 20,
+    );
   }
 }
 
@@ -2448,7 +2482,7 @@ class _AboutState extends State<_About> {
                         .marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://rustdesk.com/privacy.html');
+                    launchUrlString('https://bydesk.app/privacy');
                   },
                   child: Text(
                     translate('Privacy Statement'),
@@ -2456,7 +2490,7 @@ class _AboutState extends State<_About> {
                   ).marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://rustdesk.com');
+                    launchUrlString('https://bydesk.app');
                   },
                   child: Text(
                     translate('Website'),
@@ -2506,36 +2540,73 @@ Widget _Card(
     {required String title,
     required List<Widget> children,
     List<Widget>? title_suffix}) {
-  return Row(
-    children: [
-      Flexible(
-        child: SizedBox(
-          width: _kCardFixedWidth,
-          child: Card(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                        child: Text(
-                      translate(title),
-                      textAlign: TextAlign.start,
-                      style: const TextStyle(
-                        fontSize: _kTitleFontSize,
+  return Builder(builder: (context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        Flexible(
+          child: SizedBox(
+            width: _kCardFixedWidth,
+            child: Container(
+              margin: const EdgeInsets.only(left: _kCardLeftMargin, top: 18),
+              decoration: BoxDecoration(
+                color:
+                    isDark ? const Color(0xFF1E2024) : const Color(0xFFF1F2F5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : const Color(0xFFE6E8EE),
+                ),
+              ),
+              padding: const EdgeInsets.all(2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // section title sits on the gray surface
+                  Row(
+                    children: [
+                      Expanded(
+                          child: Text(
+                        translate(title),
+                        textAlign: TextAlign.start,
+                        style: const TextStyle(
+                          fontSize: _kTitleFontSize,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )),
+                      ...?title_suffix
+                    ],
+                  ).marginOnly(left: 12, right: 8, top: 10, bottom: 8),
+                  // white inner panel holding the content
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF2A2D33) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : const Color(0xFFEAECF1),
                       ),
-                    )),
-                    ...?title_suffix
-                  ],
-                ).marginOnly(left: _kContentHMargin, top: 10, bottom: 10),
-                ...children
-                    .map((e) => e.marginOnly(top: 4, right: _kContentHMargin)),
-              ],
-            ).marginOnly(bottom: 10),
-          ).marginOnly(left: _kCardLeftMargin, top: 15),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ...children.map((e) =>
+                            e.marginOnly(top: 6, right: _kContentHMargin)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  });
 }
 
 // ignore: non_constant_identifier_names

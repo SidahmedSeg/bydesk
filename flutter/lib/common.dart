@@ -251,16 +251,16 @@ class MyTheme {
   MyTheme._();
 
   static const Color grayBg = Color(0xFFEFEFF2);
-  static const Color accent = Color(0xFF0071FF);
-  static const Color accent50 = Color(0x770071FF);
-  static const Color accent80 = Color(0xAA0071FF);
+  static const Color accent = Color(0xFF1246E6);
+  static const Color accent50 = Color(0x771246E6);
+  static const Color accent80 = Color(0xAA1246E6);
   static const Color canvasColor = Color(0xFF212121);
   static const Color border = Color(0xFFCCCCCC);
   static const Color idColor = Color(0xFF00B6F0);
   static const Color darkGray = Color.fromARGB(255, 148, 148, 148);
   static const Color cmIdColor = Color(0xFF21790B);
   static const Color dark = Colors.black87;
-  static const Color button = Color(0xFF2C8CFF);
+  static const Color button = Color(0xFF1246E6);
   static const Color hoverBorder = Color(0xFF999999);
 
   // ListTile
@@ -3697,7 +3697,7 @@ Widget loadPowered(BuildContext context) {
     cursor: SystemMouseCursors.click,
     child: GestureDetector(
       onTap: () {
-        launchUrl(Uri.parse('https://rustdesk.com'));
+        launchUrl(Uri.parse('https://bydesk.app'));
       },
       child: Opacity(
           opacity: 0.5,
@@ -3767,9 +3767,10 @@ class _LogoState extends State<_Logo> {
             },
           );
           return Container(
-            constraints: BoxConstraints(maxWidth: 300, maxHeight: 60),
+            alignment: Alignment.centerLeft,
+            constraints: BoxConstraints(maxWidth: 79, maxHeight: 18),
             child: image,
-          ).marginOnly(left: 12, right: 12, top: 12);
+          ).marginOnly(left: 20, top: 18, bottom: 4);
         }
         return const Offstage();
       },
