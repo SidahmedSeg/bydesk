@@ -76,12 +76,14 @@ jobs:
         shell: bash
         run: cd flutter && flutter pub get
 
-      - name: Generate Rust<->Dart bridge
+      - name: Verify committed Rust<->Dart bridge
+        # Bridge is vendored (generated_bridge.dart + .freezed.dart) so Windows builds the exact
+        # same Dart that compiles on macOS. Avoids a fresh codegen producing a mismatched bridge.
         shell: bash
         run: |
-          cargo install flutter_rust_bridge_codegen --version "$FRB_VERSION" --features uuid --locked
-          "$HOME/.cargo/bin/flutter_rust_bridge_codegen" --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart
-          sed -i "s/ffi.NativeFunction<ffi.Bool Function(DartPort/ffi.NativeFunction<ffi.Uint8 Function(DartPort/g" flutter/lib/generated_bridge.dart
+          test -f flutter/lib/generated_bridge.dart || { echo "missing generated_bridge.dart"; exit 1; }
+          grep -q "class RustdeskImpl" flutter/lib/generated_bridge.dart || { echo "bridge missing RustdeskImpl"; exit 1; }
+          echo "committed bridge present"
 
       - name: Build ByDesk (Windows x64, Flutter)
         shell: bash
