@@ -5,6 +5,10 @@ name: build-windows-bydesk
 
 on:
   workflow_dispatch:
+  push:
+    branches: [bydesk-v1]
+    paths:
+      - ".github/workflows/build-windows-bydesk.yml"
 
 env:
   RUST_VERSION: "1.75"
