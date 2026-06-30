@@ -1,0 +1,95 @@
+name: build-windows-bydesk
+
+# Slim x64 Windows build for ByDesk: produces an unsigned portable build folder as an artifact.
+# Mirrors the proven Windows steps from flutter-build.yml (toolchain pins, vcpkg, bridge codegen).
+
+on:
+  workflow_dispatch:
+
+env:
+  RUST_VERSION: "1.75"
+  FLUTTER_VERSION: "3.24.5"
+  LLVM_VERSION: "15.0.6"
+  VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
+  FRB_VERSION: "1.80.1"
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2.0.9
+        with:
+          version: ${{ env.LLVM_VERSION }}
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2.12.0
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          architecture: x64
+
+      - name: Precache + patch Flutter (dropdown enableFilter)
+        shell: bash
+        run: |
+          flutter precache --windows
+          flutter_root="$(dirname "$(dirname "$(which flutter)")")"
+          cp .github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff "$flutter_root"
+          ( cd "$flutter_root" && git apply flutter_3.24.4_dropdown_menu_enableFilter.diff )
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: windows-2022
+
+      - name: Setup vcpkg (with binary cache)
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: C:\vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies (manifest mode + overlay ports)
+        shell: bash
+        env:
+          VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
+        run: |
+          "$VCPKG_ROOT/vcpkg" install --triplet x64-windows-static --x-install-root="$VCPKG_ROOT/installed" \
+            || { find "$VCPKG_ROOT/buildtrees" -name "*-out.log" -exec sh -c 'echo "== $1 =="; tail -n 60 "$1"' _ {} \; ; exit 1; }
+
+      - name: Flutter pub get
+        shell: bash
+        run: cd flutter && flutter pub get
+
+      - name: Generate Rust<->Dart bridge
+        shell: bash
+        run: |
+          cargo install flutter_rust_bridge_codegen --version "$FRB_VERSION" --features uuid --locked
+          "$HOME/.cargo/bin/flutter_rust_bridge_codegen" --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart
+          sed -i "s/ffi.NativeFunction<ffi.Bool Function(DartPort/ffi.NativeFunction<ffi.Uint8 Function(DartPort/g" flutter/lib/generated_bridge.dart
+
+      - name: Build ByDesk (Windows x64, Flutter)
+        shell: bash
+        env:
+          VCPKG_ROOT: C:\vcpkg
+        run: |
+          python3 ./build.py --flutter --hwcodec
+          mv ./flutter/build/windows/x64/runner/Release ./ByDesk
+
+      - name: Upload ByDesk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByDesk-windows-x64
+          path: ByDesk
+          if-no-files-found: error
