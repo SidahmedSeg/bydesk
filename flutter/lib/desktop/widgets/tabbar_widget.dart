@@ -23,15 +23,21 @@ import '../../utils/multi_window_manager.dart';
 
 const double _kTabBarHeight = kDesktopRemoteTabBarHeight;
 const double _kIconSize = 18;
+// Tab content icon (Home/Settings) only -- smaller than _kIconSize so it
+// doesn't crowd the pill's 20px height. Close button keeps _kIconSize.
+const double _kTabIconSize = 14;
 // Pill-style tab chip (selected tab reads as a raised rounded chip).
 const double _kTabPillRadius = 8.0;
-// Must fit within _kTabBarHeight (28) INCLUDING vertical margin below --
-// the bar wraps _buildBar() in a hard height: _kTabBarHeight constraint
-// (tabbar_widget.dart _buildBar caller), so pill height + margin > 28
-// overflows the whole tab row and can take the entire bar (and the window
-// drag GestureDetector that wraps it) down with it.
-const double _kTabPillHeight = 22.0;
-const double _kTabPillVMargin = 3.0;
+// Must fit within the tab bar's real available height INCLUDING vertical
+// margin. DesktopTabPage builds with tabType == DesktopTabType.main, for
+// which _showTabBarBottomDivider() is true, so _buildBar() actually gets
+// _kTabBarHeight - 1 = 27px (see the SizedBox wrapping _buildBar() a few
+// lines above _buildBar's own definition), not the full 28. Pill height +
+// margin must stay under 27 with room to spare -- a hard-constraint
+// overflow here previously took the whole tab row (and the window-drag
+// GestureDetector wrapping it) down with it.
+const double _kTabPillHeight = 20.0;
+const double _kTabPillVMargin = 2.0;
 const double _kActionIconSize = 12;
 
 class TabInfo {
@@ -1084,7 +1090,7 @@ class _TabState extends State<_Tab> with RestorationMixin {
         offstage: !showIcon,
         child: Icon(
           isSelected ? widget.selectedIcon : widget.unselectedIcon,
-          size: _kIconSize,
+          size: _kTabIconSize,
           color: isSelected
               ? MyTheme.tabbar(context).selectedTabIconColor
               : MyTheme.tabbar(context).unSelectedTabIconColor,
@@ -1167,6 +1173,15 @@ class _TabState extends State<_Tab> with RestorationMixin {
         },
         onTap: () => widget.onTap(),
         child: Obx(() {
+          // Must read hover.value unconditionally, on every build, regardless
+          // of which branch below ends up using it -- a selected tab's
+          // ternary short-circuits past `hover.value` entirely, so GetX sees
+          // zero observables read and throws "improper use of a GetX"
+          // synchronously during the tab ListView's layout-time child mount.
+          // That exception corrupts the whole tab bar's layout pass, which is
+          // why the ENTIRE bar (including the window-drag GestureDetector
+          // wrapping it) went blank and unresponsive, not just this pill.
+          final isHovering = hover.value;
           return AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             curve: Curves.easeOut,
@@ -1177,7 +1192,7 @@ class _TabState extends State<_Tab> with RestorationMixin {
             decoration: BoxDecoration(
               color: isSelected
                   ? pillColor
-                  : (hover.value
+                  : (isHovering
                       ? pillColor.withOpacity(isDark ? 0.35 : 0.55)
                       : Colors.transparent),
               borderRadius: BorderRadius.circular(_kTabPillRadius),

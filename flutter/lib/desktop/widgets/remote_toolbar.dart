@@ -338,19 +338,18 @@ class _ToolbarTheme {
   static const double height = 20.0;
   static const double dividerHeight = 12.0;
 
-  static const double buttonSize = 32;
-  static const double buttonHMargin = 2;
+  static const double buttonSize = 36;
+  static const double buttonHMargin = 3;
   static const double buttonVMargin = 6;
-  static const double iconRadius = 8;
-  static const double elevation = 3;
+  static const double iconRadius = 10;
+  static const double elevation = 6;
 
   static double dividerSpaceToAction = isWindows ? 8 : 14;
 
-  static double menuBorderRadius = isWindows ? 5.0 : 7.0;
-  static EdgeInsets menuPadding = isWindows
-      ? EdgeInsets.fromLTRB(4, 12, 4, 12)
-      : EdgeInsets.fromLTRB(6, 14, 6, 14);
-  static const double menuButtonBorderRadius = 3.0;
+  // Rounder, roomier menus than the stock 5px/3px.
+  static double menuBorderRadius = 12.0;
+  static EdgeInsets menuPadding = EdgeInsets.fromLTRB(8, 8, 8, 8);
+  static const double menuButtonBorderRadius = 8.0;
 
   static Color borderColor(BuildContext context) =>
       MyTheme.color(context).border3 ?? MyTheme.border;
@@ -367,6 +366,8 @@ class _ToolbarTheme {
             borderRadius:
                 BorderRadius.circular(_ToolbarTheme.menuBorderRadius))),
         padding: MaterialStateProperty.all(_ToolbarTheme.menuPadding),
+        elevation: MaterialStateProperty.all(10),
+        visualDensity: VisualDensity.compact,
       );
   static final defaultMenuButtonStyle = ButtonStyle(
     backgroundColor: MaterialStatePropertyAll(Colors.transparent),
@@ -850,11 +851,13 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
     }
     toolbarItems.add(_ChatMenu(id: widget.id, ffi: widget.ffi));
     if (!isWeb) {
+      // Chat and call are deliberately separate buttons.
+      toolbarItems.add(_CallMenu(id: widget.id, ffi: widget.ffi));
       toolbarItems.add(_VoiceCallMenu(id: widget.id, ffi: widget.ffi));
     }
     if (!isWeb) toolbarItems.add(_RecordMenu());
     toolbarItems.add(_CloseMenu(id: widget.id, ffi: widget.ffi));
-    final toolbarBorderRadius = BorderRadius.all(Radius.circular(4.0));
+    final toolbarBorderRadius = BorderRadius.all(Radius.circular(14.0));
     // innerAxis: how the toolbar icons themselves flow.
     // outerAxis: how the toolbar block and the handle stack against each other
     // (perpendicular to the dock edge, so the handle hangs off the interior face).
@@ -963,7 +966,7 @@ class _MobileActionMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!ffi.ffiModel.isPeerAndroid) return Offstage();
     return Obx(() => _IconMenuButton(
-          assetName: 'assets/actions_mobile.svg',
+          assetName: 'assets/tb_mouse.svg',
           tooltip: 'Mobile Actions',
           onPressed: () => ffi.dialogManager.setMobileActionsOverlayVisible(
               !ffi.dialogManager.mobileActionsOverlayVisible.value),
@@ -1313,7 +1316,7 @@ class _ControlMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return _IconSubmenuButton(
         tooltip: 'Control Actions',
-        svg: "assets/actions.svg",
+        svg: "assets/tb_more.svg",
         color: _ToolbarTheme.blueColor,
         hoverColor: _ToolbarTheme.hoverBlueColor,
         ffi: ffi,
@@ -2596,38 +2599,22 @@ class _ChatMenuState extends State<_ChatMenu> {
   // Using in StatelessWidget got `Looking up a deactivated widget's ancestor is unsafe`.
   final chatButtonKey = GlobalKey();
 
+  // Chat is its own button: one tap opens the chat overlay. Voice call lives in
+  // _CallMenu / _VoiceCallMenu so the two are never bundled behind one icon.
   @override
   Widget build(BuildContext context) {
-    if (isWeb) {
-      return buildTextChatButton();
-    } else {
-      return _IconSubmenuButton(
-          tooltip: 'Chat',
-          key: chatButtonKey,
-          svg: 'assets/chat.svg',
-          ffi: widget.ffi,
-          color: _ToolbarTheme.blueColor,
-          hoverColor: _ToolbarTheme.hoverBlueColor,
-          menuChildrenGetter: (_) => [textChat(), voiceCall()]);
-    }
+    return buildTextChatButton();
   }
 
   buildTextChatButton() {
     return _IconMenuButton(
-      assetName: 'assets/message_24dp_5F6368.svg',
-      tooltip: 'Text chat',
+      assetName: 'assets/tb_chat.svg',
+      tooltip: 'Chat',
       key: chatButtonKey,
       onPressed: _textChatOnPressed,
       color: _ToolbarTheme.blueColor,
       hoverColor: _ToolbarTheme.hoverBlueColor,
     );
-  }
-
-  textChat() {
-    return MenuButton(
-        child: Text(translate('Text chat')),
-        ffi: widget.ffi,
-        onPressed: _textChatOnPressed);
   }
 
   _textChatOnPressed() {
@@ -2642,14 +2629,30 @@ class _ChatMenuState extends State<_ChatMenu> {
         .changeCurrentKey(MessageKey(widget.ffi.id, ChatModel.clientModeID));
     widget.ffi.chatModel.toggleChatOverlay(chatInitPos: initPos);
   }
+}
 
-  voiceCall() {
-    return MenuButton(
-      child: Text(translate('Voice call')),
-      ffi: widget.ffi,
-      onPressed: () =>
-          bind.sessionRequestVoiceCall(sessionId: widget.ffi.sessionId),
-    );
+// Start-a-call button. Only visible while no call is running -- once a call is
+// requested or connected, _VoiceCallMenu takes over the slot.
+class _CallMenu extends StatelessWidget {
+  final String id;
+  final FFI ffi;
+  const _CallMenu({Key? key, required this.id, required this.ffi})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (ffi.chatModel.voiceCallStatus.value != VoiceCallStatus.notStarted) {
+        return Offstage();
+      }
+      return _IconMenuButton(
+        assetName: 'assets/tb_call.svg',
+        tooltip: 'Voice call',
+        onPressed: () => bind.sessionRequestVoiceCall(sessionId: ffi.sessionId),
+        color: _ToolbarTheme.blueColor,
+        hoverColor: _ToolbarTheme.hoverBlueColor,
+      );
+    });
   }
 }
 
@@ -2709,7 +2712,7 @@ class _VoiceCallMenu extends StatelessWidget {
           case VoiceCallStatus.connected:
             return _IconSubmenuButton(
               tooltip: 'Voice call',
-              svg: 'assets/voice_call.svg',
+              svg: 'assets/tb_call_slash.svg',
               color: _ToolbarTheme.blueColor,
               hoverColor: _ToolbarTheme.hoverBlueColor,
               menuChildrenGetter: menuChildrenGetter,
@@ -2744,7 +2747,7 @@ class _RecordMenu extends StatelessWidget {
         (recordingModel.start || ffi.permissions['recording'] != false);
     if (!visible) return Offstage();
     return _IconMenuButton(
-      assetName: 'assets/rec.svg',
+      assetName: 'assets/tb_record.svg',
       tooltip: recordingModel.start
           ? 'Stop session recording'
           : 'Start session recording',
@@ -3356,11 +3359,14 @@ class _DraggableShowHideState extends State<_DraggableShowHide> {
               Tooltip(
                 message: translate(
                     isFullscreen.isTrue ? 'Exit Fullscreen' : 'Fullscreen'),
-                child: Icon(
-                  isFullscreen.isTrue
-                      ? Icons.fullscreen_exit
-                      : Icons.fullscreen,
-                  size: iconSize,
+                child: SvgPicture.asset(
+                  'assets/tb_fullscreen.svg',
+                  width: iconSize,
+                  height: iconSize,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).iconTheme.color ?? Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             )),
