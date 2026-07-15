@@ -25,7 +25,13 @@ const double _kTabBarHeight = kDesktopRemoteTabBarHeight;
 const double _kIconSize = 18;
 // Pill-style tab chip (selected tab reads as a raised rounded chip).
 const double _kTabPillRadius = 8.0;
-const double _kTabPillHeight = 28.0;
+// Must fit within _kTabBarHeight (28) INCLUDING vertical margin below --
+// the bar wraps _buildBar() in a hard height: _kTabBarHeight constraint
+// (tabbar_widget.dart _buildBar caller), so pill height + margin > 28
+// overflows the whole tab row and can take the entire bar (and the window
+// drag GestureDetector that wraps it) down with it.
+const double _kTabPillHeight = 22.0;
+const double _kTabPillVMargin = 3.0;
 const double _kActionIconSize = 12;
 
 class TabInfo {
@@ -1165,7 +1171,8 @@ class _TabState extends State<_Tab> with RestorationMixin {
             duration: const Duration(milliseconds: 150),
             curve: Curves.easeOut,
             height: _kTabPillHeight,
-            margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
+            margin: const EdgeInsets.symmetric(
+                horizontal: 3, vertical: _kTabPillVMargin),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
               color: isSelected
