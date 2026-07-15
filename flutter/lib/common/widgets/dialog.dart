@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/shared_state.dart';
 import 'package:flutter_hbb/common/widgets/setting_widgets.dart';
@@ -761,27 +762,40 @@ class _PasswordWidgetState extends State<PasswordWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return DialogTextField(
-      title: translate(widget.title ?? DialogTextField.kPasswordTitle),
-      hintText: translate(widget.hintText ?? 'Enter your password'),
-      controller: widget.controller,
-      prefixIcon: DialogTextField.kPasswordIcon,
-      suffixIcon: IconButton(
-        icon: Icon(
-            // Based on passwordVisible state choose the icon
-            _passwordVisible ? Icons.visibility : Icons.visibility_off,
-            color: MyTheme.lightTheme.primaryColor),
-        onPressed: () {
-          // Update the state i.e. toggle the state of passwordVisible variable
-          setState(() {
-            _passwordVisible = !_passwordVisible;
-          });
-        },
-      ),
-      obscureText: !_passwordVisible,
-      errorText: widget.errorText,
-      focusNode: _focusNode,
-      maxLength: widget.maxLength,
+    final eyeToggle = IconButton(
+      icon: Icon(
+          _passwordVisible ? Icons.visibility : Icons.visibility_off,
+          color: MyTheme.lightTheme.primaryColor),
+      onPressed: () {
+        setState(() {
+          _passwordVisible = !_passwordVisible;
+        });
+      },
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 4),
+          child: Text(
+            translate(widget.title ?? DialogTextField.kPasswordTitle),
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6B7280)),
+          ),
+        ),
+        DialogTextField(
+          title: '',
+          hintText: translate(widget.hintText ?? 'Enter your password'),
+          controller: widget.controller,
+          suffixIcon: eyeToggle,
+          obscureText: !_passwordVisible,
+          errorText: widget.errorText,
+          focusNode: _focusNode,
+          maxLength: widget.maxLength,
+        ),
+      ],
     );
   }
 }
@@ -948,14 +962,29 @@ _connectDialog(
       bool remember,
       ValueChanged<bool?>? onChanged,
     ) {
-      return CheckboxListTile(
-        contentPadding: const EdgeInsets.all(0),
-        dense: true,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: Text(desc),
-        value: remember,
-        onChanged: onChanged,
-      );
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: Checkbox(
+                value: remember,
+                onChanged: onChanged,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: onChanged == null ? null : () => onChanged(!remember),
+              child: Text(desc),
+            ),
+          ],
+        ),
+      ).paddingSymmetric(vertical: 6);
     }
 
     osAccountWidget() {
@@ -1027,29 +1056,34 @@ _connectDialog(
 
     return CustomAlertDialog(
       title: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Icon(Icons.password_rounded, color: MyTheme.accent),
+          SvgPicture.asset('assets/pwd_check.svg',
+              width: 22,
+              height: 22,
+              colorFilter:
+                  const ColorFilter.mode(MyTheme.accent, BlendMode.srcIn)),
           Text(translate('Password Required')).paddingOnly(left: 10),
         ],
       ),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        osAccountWidget(),
-        osUsernameController == null || passwordController == null
-            ? Offstage()
-            : Container(height: 12),
-        passwdWidget(),
-      ]),
+      content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            osAccountWidget(),
+            osUsernameController == null || passwordController == null
+                ? Offstage()
+                : Container(height: 12),
+            passwdWidget(),
+          ]),
       actions: [
         dialogButton(
           'Cancel',
-          icon: Icon(Icons.close_rounded),
           onPressed: cancel,
           isOutline: true,
         ),
         dialogButton(
           'OK',
-          icon: Icon(Icons.done_rounded),
           onPressed: submit,
         ),
       ],

@@ -228,7 +228,7 @@ class _PeerTabPageState extends State<PeerTabPage>
       1: 'Saved',
       2: 'Discover',
       3: 'Address Book',
-      4: 'Accessible Devices',
+      4: 'Devices',
     };
     final key = map[t];
     return key != null ? translate(key) : model.tabTooltip(t);

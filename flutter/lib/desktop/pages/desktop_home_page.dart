@@ -650,14 +650,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     FixedWidthButton(
-                                      width: 150,
-                                      padding: 8,
+                                      width: 120,
+                                      padding: 5,
                                       isOutline: true,
                                       text: translate(btnText),
                                       textColor: Colors.white,
                                       borderColor: Colors.white,
-                                      textSize: 20,
-                                      radius: 10,
+                                      textSize: 14,
+                                      radius: 8,
                                       onTap: onPressed,
                                     )
                                   ])

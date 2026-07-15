@@ -1674,6 +1674,7 @@ class _NetworkState extends State<_Network> with AutomaticKeepAliveClientMixin {
       Widget? trailing,
       bool showTooltip = false,
       String tooltipMessage = '',
+      String? svgAsset,
     }) {
       final titleWidget = showTooltip
           ? Row(
@@ -1708,7 +1709,12 @@ class _NetworkState extends State<_Network> with AutomaticKeepAliveClientMixin {
             );
 
       return ListTile(
-        leading: Icon(icon, color: _accentColor),
+        leading: svgAsset != null
+            ? SvgPicture.asset(svgAsset,
+                width: 22,
+                height: 22,
+                colorFilter: ColorFilter.mode(_accentColor, BlendMode.srcIn))
+            : Icon(icon, color: _accentColor),
         title: titleWidget,
         enabled: !locked,
         onTap: onTap,
@@ -1723,9 +1729,10 @@ class _NetworkState extends State<_Network> with AutomaticKeepAliveClientMixin {
     }
 
     Widget switchWidget(IconData icon, String title, String tooltipMessage,
-            String optionKey) =>
+            String optionKey, {String? svgAsset}) =>
         listTile(
           icon: icon,
+          svgAsset: svgAsset,
           title: title,
           showTooltip: true,
           tooltipMessage: tooltipMessage,
@@ -1753,6 +1760,7 @@ class _NetworkState extends State<_Network> with AutomaticKeepAliveClientMixin {
               if (!hideServer)
                 listTile(
                   icon: Icons.dns_outlined,
+                  svgAsset: 'assets/net_id_relay.svg',
                   title: 'ID/Relay Server',
                   onTap: () => showServerSettings(gFFI.dialogManager, setState),
                 ),
@@ -1760,6 +1768,7 @@ class _NetworkState extends State<_Network> with AutomaticKeepAliveClientMixin {
               if (!hideProxy)
                 listTile(
                   icon: Icons.network_ping_outlined,
+                  svgAsset: 'assets/net_socks5.svg',
                   title: 'Socks5/Http(s) Proxy',
                   onTap: changeSocks5Proxy,
                 ),
@@ -1769,7 +1778,8 @@ class _NetworkState extends State<_Network> with AutomaticKeepAliveClientMixin {
                     Icons.web_asset_outlined,
                     'Use WebSocket',
                     '${translate('websocket_tip')}\n\n${translate('server-oss-not-support-tip')}',
-                    kOptionAllowWebSocket),
+                    kOptionAllowWebSocket,
+                    svgAsset: 'assets/net_websocket.svg'),
               if (!isWeb)
                 futureBuilder(
                   future: bind.mainIsUsingPublicServer(),
@@ -2496,33 +2506,6 @@ class _AboutState extends State<_About> {
                     translate('Website'),
                     style: linkStyle,
                   ).marginSymmetric(vertical: 4.0)),
-              Container(
-                decoration: const BoxDecoration(color: Color(0xFF2c8cff)),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-                child: SelectionArea(
-                    child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Copyright © ${DateTime.now().toString().substring(0, 4)} Purslane Ltd.\n$license',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          Text(
-                            translate('Slogan_tip'),
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white),
-                          )
-                        ],
-                      ),
-                    ),
-                  ],
-                )),
-              ).marginSymmetric(vertical: 4.0)
             ],
           ).marginOnly(left: _kContentHMargin)
         ]),
@@ -2943,9 +2926,12 @@ Widget _lock(
                       child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.security_sharp,
-                              size: 20,
+                            SvgPicture.asset(
+                              'assets/unlock.svg',
+                              width: 18,
+                              height: 18,
+                              colorFilter: const ColorFilter.mode(
+                                  Colors.white, BlendMode.srcIn),
                             ),
                             Text(translate(label)).marginOnly(left: 5),
                           ]).marginSymmetric(vertical: 2)),

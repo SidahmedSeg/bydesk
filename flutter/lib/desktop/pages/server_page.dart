@@ -579,19 +579,19 @@ class _CmHeaderState extends State<_CmHeader>
 
   Widget _buildInitialAvatar() {
     return Container(
-      width: 70,
-      height: 70,
+      width: 56,
+      height: 56,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: str2color(client.name),
-        borderRadius: BorderRadius.circular(15.0),
+        color: const Color(0xFF14307A),
+        borderRadius: BorderRadius.circular(14.0),
       ),
       child: Text(
         client.name.isNotEmpty ? client.name[0] : '?',
         style: TextStyle(
           fontWeight: FontWeight.bold,
           color: Colors.white,
-          fontSize: 55,
+          fontSize: 42,
         ),
       ),
     );
@@ -618,8 +618,10 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
       child: Container(
         decoration: BoxDecoration(
           color: enabled
-              ? (canModify ? MyTheme.accent : MyTheme.accent.withOpacity(0.6))
-              : Colors.grey[700],
+              ? (canModify
+                  ? const Color(0xFF4F8CFF)
+                  : const Color(0xFF4F8CFF).withOpacity(0.6))
+              : Colors.grey[500],
           borderRadius: BorderRadius.circular(10.0),
         ),
         padding: EdgeInsets.all(8.0),
@@ -632,16 +634,38 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               Expanded(
-                child: Icon(
-                  iconData,
-                  color: Colors.white,
-                ),
+                child: _permSvg(iconData) != null
+                    ? Center(
+                        child: SvgPicture.asset(
+                          _permSvg(iconData)!,
+                          width: 26,
+                          height: 26,
+                          colorFilter: const ColorFilter.mode(
+                              Colors.white, BlendMode.srcIn),
+                        ),
+                      )
+                    : Icon(
+                        iconData,
+                        color: Colors.white,
+                      ),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  // ByDesk: map each permission's Material icon to its custom SVG.
+  String? _permSvg(IconData i) {
+    if (i == Icons.volume_up_rounded) return 'assets/perm_audio.svg';
+    if (i == Icons.videocam_rounded) return 'assets/perm_camera.svg';
+    if (i == Icons.keyboard) return 'assets/perm_keyboard.svg';
+    if (i == Icons.assignment_rounded) return 'assets/perm_note.svg';
+    if (i == Icons.upload_file_rounded) return 'assets/perm_document.svg';
+    if (i == Icons.restart_alt_rounded) return 'assets/perm_refresh.svg';
+    if (i == Icons.visibility_off) return 'assets/perm_eye_slash.svg';
+    return null;
   }
 
   @override
