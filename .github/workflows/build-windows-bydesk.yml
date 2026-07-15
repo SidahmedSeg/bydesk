@@ -90,12 +90,50 @@ jobs:
         env:
           VCPKG_ROOT: C:\vcpkg
         run: |
-          python3 ./build.py --flutter --hwcodec
+          # --skip-portable-pack: build.py's built-in packer hardcodes `rustdesk.exe`
+          # as the self-extractor's startup binary. We ship `bydesk.exe`, and
+          # generate.py does NOT validate that the entry point exists -- it would
+          # silently produce an installer that unpacks and then launches nothing.
+          # We pack manually below with the correct entry point instead.
+          python3 ./build.py --flutter --hwcodec --skip-portable-pack
           mv ./flutter/build/windows/x64/runner/Release ./ByDesk
 
-      - name: Upload ByDesk artifact
+      - name: Resolve version
+        shell: bash
+        run: |
+          VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          PKG="ByDesk-${VERSION}-b${{ github.run_number }}-${SHA_SHORT}-x86_64"
+          echo "VERSION=$VERSION"   >> "$GITHUB_ENV"
+          echo "SHA_SHORT=$SHA_SHORT" >> "$GITHUB_ENV"
+          echo "PKG=$PKG"           >> "$GITHUB_ENV"
+          echo "packaging as: ${PKG}-install.exe"
+
+      - name: Build self-extracting installer (single file)
+        shell: bash
+        run: |
+          set -e
+          sed -i '/dpiAware/d' res/manifest.xml
+          pushd ./libs/portable
+          pip3 install -r requirements.txt
+          # -e must point at OUR renamed binary, else the extractor launches nothing.
+          python3 ./generate.py -f ../../ByDesk/ -o . -e ../../ByDesk/bydesk.exe
+          popd
+          test -f ./target/release/rustdesk-portable-packer.exe \
+            || { echo "::error::portable packer was not produced"; exit 1; }
+          mv ./target/release/rustdesk-portable-packer.exe "./${PKG}-install.exe"
+          ls -lh "./${PKG}-install.exe"
+
+      - name: Upload installer (single self-contained exe)
         uses: actions/upload-artifact@v4
         with:
-          name: ByDesk-windows-x64
+          name: ByDesk-installer-${{ env.VERSION }}-b${{ github.run_number }}
+          path: "*-install.exe"
+          if-no-files-found: error
+
+      - name: Upload portable folder (all files required together)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByDesk-portable-${{ env.VERSION }}-b${{ github.run_number }}
           path: ByDesk
           if-no-files-found: error
