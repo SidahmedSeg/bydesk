@@ -17,6 +17,10 @@ cert.pfx
 *png
 *svg
 *jpg
+# Bundled Flutter assets must ship in the repo, otherwise CI builds render them
+# blank (the blanket *svg/*png rules above silently swallowed 13 of them).
+!flutter/assets/**
+!res/**
 sciter.dll
 **pdb
 src/bridge_generated.rs
