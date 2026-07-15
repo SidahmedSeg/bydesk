@@ -23,7 +23,9 @@ import '../../utils/multi_window_manager.dart';
 
 const double _kTabBarHeight = kDesktopRemoteTabBarHeight;
 const double _kIconSize = 18;
-const double _kDividerIndent = 10;
+// Pill-style tab chip (selected tab reads as a raised rounded chip).
+const double _kTabPillRadius = 8.0;
+const double _kTabPillHeight = 28.0;
 const double _kActionIconSize = 12;
 
 class TabInfo {
@@ -1093,6 +1095,8 @@ class _TabState extends State<_Tab> with RestorationMixin {
                   : widget.label.value,
               textAlign: TextAlign.center,
               style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
                       ? MyTheme.tabbar(context).selectedTextColor
                       : MyTheme.tabbar(context).unSelectedTextColor),
@@ -1143,60 +1147,62 @@ class _TabState extends State<_Tab> with RestorationMixin {
   @override
   Widget build(BuildContext context) {
     bool isSelected = widget.index == widget.selected;
-    bool showDivider =
-        widget.index != widget.selected - 1 && widget.index != widget.selected;
     RxBool hover = restoreHover.value.obs;
+    // Pill-style tabs: the selected tab is a raised rounded chip, unselected
+    // tabs are plain text. Dividers are dropped -- the chip marks the selection.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pillColor = isDark ? const Color(0xFF2B2B2E) : Colors.white;
     return Ink(
       child: InkWell(
+        borderRadius: BorderRadius.circular(_kTabPillRadius),
         onHover: (value) {
           hover.value = value;
           restoreHover.value = value;
         },
         onTap: () => widget.onTap(),
-        child: Container(
-            decoration: isSelected && widget.selectedBorderColor != null
-                ? BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: widget.selectedBorderColor!,
-                        width: 1,
-                      ),
-                    ),
-                  )
-                : null,
-            child: Container(
+        child: Obx(() {
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            height: _kTabPillHeight,
+            margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? widget.selectedTabBackgroundColor
-                  : widget.unSelectedTabBackgroundColor,
-              child: Row(
-                children: [
-                  SizedBox(
-                      // _kTabBarHeight also displays normally
-                      height: _showTabBarBottomDivider(widget.tabType)
-                          ? _kTabBarHeight - 1
-                          : _kTabBarHeight,
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            _buildTabContent(),
-                            Obx((() => _CloseButton(
-                                  visible: hover.value && widget.closable,
-                                  tabSelected: isSelected,
-                                  onClose: () => widget.onClose(),
-                                )))
-                          ])).paddingOnly(left: 10, right: 5),
-                  Offstage(
-                    offstage: !showDivider,
-                    child: VerticalDivider(
-                      width: 1,
-                      indent: _kDividerIndent,
-                      endIndent: _kDividerIndent,
-                      color: MyTheme.tabbar(context).dividerColor,
-                    ),
-                  )
-                ],
+                  ? pillColor
+                  : (hover.value
+                      ? pillColor.withOpacity(isDark ? 0.35 : 0.55)
+                      : Colors.transparent),
+              borderRadius: BorderRadius.circular(_kTabPillRadius),
+              border: Border.all(
+                color: isSelected
+                    ? (isDark ? Colors.white12 : Colors.black.withOpacity(0.07))
+                    : Colors.transparent,
               ),
-            )),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.35 : 0.10),
+                        blurRadius: 5,
+                        offset: const Offset(0, 1),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildTabContent(),
+                Obx((() => _CloseButton(
+                      visible: (hover.value || isSelected) && widget.closable,
+                      tabSelected: isSelected,
+                      onClose: () => widget.onClose(),
+                    )))
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
