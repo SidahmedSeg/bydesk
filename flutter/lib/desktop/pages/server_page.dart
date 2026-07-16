@@ -83,7 +83,8 @@ class _DesktopServerPageState extends State<DesktopServerPage>
       child: Consumer<ServerModel>(
         builder: (context, serverModel, child) {
           final body = Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.background,
+            // Dark to match the floating toolbar.
+            backgroundColor: const Color(0xFF141A24),
             body: ConnectionManager(),
           );
           return isLinux
@@ -256,7 +257,7 @@ class ConnectionManagerState extends State<ConnectionManager>
                                   ))),
                   ]);
                   return Container(
-                    color: Theme.of(context).scaffoldBackgroundColor,
+                    color: const Color(0xFF141A24),
                     child: row,
                   );
                 },
@@ -682,22 +683,18 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
       padding: EdgeInsets.all(5.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10.0),
-        color: Theme.of(context).colorScheme.background,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 1,
-            offset: Offset(0, 1.5),
-          ),
-        ],
+        color: const Color(0xFF1B2230),
+        border: Border.all(color: const Color(0x14FFFFFF)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             translate("Permissions"),
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFE9EEFC)),
             textAlign: TextAlign.center,
           ).marginOnly(left: 4.0, bottom: 8.0),
           Expanded(

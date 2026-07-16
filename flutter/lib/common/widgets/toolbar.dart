@@ -356,21 +356,24 @@ List<TTextMenu> toolbarControls(BuildContext context, String id, FFI ffi) {
         child: Row(children: [
           Text(translate(pi.isHeadless ? 'OS Account' : 'OS Password')),
         ]),
-        trailingIcon: Transform.scale(
-          scale: (isDesktop || isWebDesktop) ? 0.8 : 1,
-          child: IconButton(
-            onPressed: () {
-              if (isMobile && Navigator.canPop(context)) {
-                Navigator.pop(context);
-              }
-              if (pi.isHeadless) {
-                showSetOSAccount(sessionId, ffi.dialogManager);
-              } else {
-                handleOsPasswordEditIcon(sessionId, ffi.dialogManager);
-              }
-            },
-            icon: Icon(Icons.edit, color: isMobile ? MyTheme.accent : null),
-          ),
+        trailingIcon: IconButton(
+          // Tight, small edit icon so this row is the same height as the rest.
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          visualDensity: VisualDensity.compact,
+          splashRadius: 14,
+          onPressed: () {
+            if (isMobile && Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+            if (pi.isHeadless) {
+              showSetOSAccount(sessionId, ffi.dialogManager);
+            } else {
+              handleOsPasswordEditIcon(sessionId, ffi.dialogManager);
+            }
+          },
+          icon: Icon(Icons.edit,
+              size: 16, color: isMobile ? MyTheme.accent : null),
         ),
         onPressed: () => pi.isHeadless
             ? showSetOSAccount(sessionId, ffi.dialogManager)

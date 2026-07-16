@@ -346,8 +346,6 @@ class _ToolbarTheme {
   static const Color iconHoverColor = Colors.white;
   static const Color buttonRestColor = Colors.transparent;
   static const Color buttonHoverColor = Color(0xFF1246E6); // brand
-  static const Color pinRestColor = Color(0x14FFFFFF); // white @ 8%
-  static const Color pinHoverColor = Color(0x29FFFFFF); // white @ 16%
   static const Color recordColor = Color(0xFFFF5A4D);
   static const Color closeIconColor = Color(0xFFFF5A4D);
   static const Color closeHoverColor = Color(0xFFF0453A);
@@ -356,17 +354,17 @@ class _ToolbarTheme {
   static const double height = 20.0;
   static const double dividerHeight = 12.0;
 
-  // Values from Toolbar Studio (Ghost / dark preset).
-  static const double buttonSize = 32;
+  // Ghost / dark, tuned live in the preview harness.
+  static const double buttonSize = 30;
   // Glyph size INSIDE the button, centered, so it doesn't fill edge-to-edge.
-  static const double iconSize = 17;
-  static const double buttonHMargin = 1;
-  static const double buttonVMargin = 6;
-  static const double iconRadius = 12;
+  static const double iconSize = 18;
+  static const double buttonHMargin = 2;
+  static const double buttonVMargin = 7;
+  // Rounded square (not a fat stadium) so the hover fill reads as a button.
+  static const double iconRadius = 8;
   static const double elevation = 6;
   static const double barBorderRadius = 12;
 
-  static double dividerSpaceToAction = isWindows ? 8 : 14;
 
   // Rounder, roomier menus than the stock 5px/3px.
   static double menuBorderRadius = 12.0;
@@ -379,11 +377,12 @@ class _ToolbarTheme {
   static Color? dividerColor(BuildContext context) =>
       MyTheme.color(context).divider;
 
+  // Dropdown menu surface: dark to match the floating bar.
+  static const Color menuColor = Color(0xFF1B2230);
   static MenuStyle defaultMenuStyle(BuildContext context) => MenuStyle(
-        side: MaterialStateProperty.all(BorderSide(
-          width: 1,
-          color: borderColor(context),
-        )),
+        backgroundColor: const MaterialStatePropertyAll(menuColor),
+        side: const MaterialStatePropertyAll(
+            BorderSide(width: 1, color: barBorderColorDark)),
         shape: MaterialStatePropertyAll(RoundedRectangleBorder(
             borderRadius:
                 BorderRadius.circular(_ToolbarTheme.menuBorderRadius))),
@@ -942,29 +941,58 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
 
   ThemeData themeData() {
     return Theme.of(context).copyWith(
+      // Dropdown popup surface (dark), themed at the theme level so every menu
+      // opened from the toolbar inherits it -- the proper MenuThemeData route,
+      // not per-widget overrides.
+      menuTheme: MenuThemeData(
+        style: MenuStyle(
+          backgroundColor:
+              const MaterialStatePropertyAll(_ToolbarTheme.menuColor),
+          surfaceTintColor:
+              const MaterialStatePropertyAll(Colors.transparent),
+          shadowColor: const MaterialStatePropertyAll(Colors.black54),
+          elevation: const MaterialStatePropertyAll(10),
+          side: const MaterialStatePropertyAll(BorderSide(
+              width: 1, color: _ToolbarTheme.barBorderColorDark)),
+          shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.circular(_ToolbarTheme.menuBorderRadius))),
+          padding: MaterialStatePropertyAll(_ToolbarTheme.menuPadding),
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
       menuButtonTheme: MenuButtonThemeData(
         style: ButtonStyle(
-          minimumSize: MaterialStatePropertyAll(Size(64, 32)),
+          minimumSize: MaterialStatePropertyAll(Size(64, 34)),
           textStyle: MaterialStatePropertyAll(
             TextStyle(fontWeight: FontWeight.normal),
           ),
+          // Light text on the dark menu; subtle white hover.
+          foregroundColor:
+              const MaterialStatePropertyAll(Color(0xFFE9EEFC)),
+          iconColor: const MaterialStatePropertyAll(Color(0xFFE9EEFC)),
+          overlayColor:
+              const MaterialStatePropertyAll(Color(0x14FFFFFF)),
           shape: MaterialStatePropertyAll(RoundedRectangleBorder(
               borderRadius:
                   BorderRadius.circular(_ToolbarTheme.menuButtonBorderRadius))),
         ),
       ),
-      dividerTheme: DividerThemeData(
-        space: _ToolbarTheme.dividerSpaceToAction,
-        color: _ToolbarTheme.dividerColor(context),
+      dividerTheme: const DividerThemeData(
+        space: 8,
+        thickness: 1,
+        color: _ToolbarTheme.barBorderColorDark,
       ),
       menuBarTheme: MenuBarThemeData(
           style: MenuStyle(
         padding: MaterialStatePropertyAll(EdgeInsets.zero),
         elevation: MaterialStatePropertyAll(0),
         shape: MaterialStatePropertyAll(BeveledRectangleBorder()),
-      ).copyWith(
-              backgroundColor:
-                  Theme.of(context).menuBarTheme.style?.backgroundColor)),
+        // Each top-level toolbar button is a MenuBar; leave it transparent so
+        // the dark bar Material (barColor) shows through instead of the app's
+        // (light) menu-bar surface painting a white box over every button.
+        backgroundColor: const MaterialStatePropertyAll(Colors.transparent),
+      )),
     );
   }
 }
@@ -980,13 +1008,12 @@ class _PinMenu extends StatelessWidget {
         assetName: state.pin ? "assets/tb_pin_on.svg" : "assets/tb_pin.svg",
         tooltip: state.pin ? 'Unpin Toolbar' : 'Pin Toolbar',
         onPressed: state.switchPin,
-        // Pinned = brand-blue active fill; unpinned = subtle white-alpha chip.
+        // Transparent like every other button when unpinned (no "stuck on"
+        // chip); brand-blue fill only when actually pinned.
         color: state.pin
             ? _ToolbarTheme.buttonHoverColor
-            : _ToolbarTheme.pinRestColor,
-        hoverColor: state.pin
-            ? _ToolbarTheme.buttonHoverColor
-            : _ToolbarTheme.pinHoverColor,
+            : _ToolbarTheme.buttonRestColor,
+        hoverColor: _ToolbarTheme.buttonHoverColor,
       ),
     );
   }
@@ -2877,42 +2904,40 @@ class _IconMenuButtonState extends State<_IconMenuButton> {
             height: _ToolbarTheme.iconSize,
           ),
         );
-    var button = SizedBox(
+    // Plain InkWell (not MenuItemButton) so the hover fill is a tight rounded
+    // square that exactly fills the 30x30 button -- MenuItemButton imposed its
+    // own menu-item min-size/shape, which stretched the fill into a pill and
+    // made the simple buttons look inconsistent with the dropdown buttons.
+    final button = SizedBox(
       width: widget.width ?? _ToolbarTheme.buttonSize,
       height: _ToolbarTheme.buttonSize,
-      child: MenuItemButton(
-          style: ButtonStyle(
-              backgroundColor: MaterialStatePropertyAll(Colors.transparent),
-              padding: MaterialStatePropertyAll(EdgeInsets.zero),
-              overlayColor: MaterialStatePropertyAll(Colors.transparent)),
-          onHover: (value) => setState(() {
-                hover = value;
-              }),
-          onPressed: widget.onPressed,
-          child: Tooltip(
-            message: translate(widget.tooltip),
-            child: Material(
-                type: MaterialType.transparency,
-                child: Ink(
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(_ToolbarTheme.iconRadius),
-                      color: hover ? widget.hoverColor : widget.color,
-                    ),
-                    child: icon)),
-          )),
+      child: Tooltip(
+        message: translate(widget.tooltip),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(_ToolbarTheme.iconRadius),
+            onTap: widget.onPressed,
+            onHover: (value) => setState(() {
+              hover = value;
+            }),
+            hoverColor: Colors.transparent,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(_ToolbarTheme.iconRadius),
+                color: hover ? widget.hoverColor : widget.color,
+              ),
+              child: icon,
+            ),
+          ),
+        ),
+      ),
     ).marginSymmetric(
         horizontal: widget.hMargin ?? _ToolbarTheme.buttonHMargin,
         vertical: widget.vMargin ?? _ToolbarTheme.buttonVMargin);
-    button = Tooltip(
-      message: translate(widget.tooltip),
-      child: button,
-    );
-    if (widget.topLevel) {
-      return MenuBar(children: [button]);
-    } else {
-      return button;
-    }
+    return button;
   }
 }
 
@@ -3350,12 +3375,8 @@ class _DraggableShowHideState extends State<_DraggableShowHide> {
         // floats away from the top while dragging and the toolbar looks
         // unmoored. When multi-edge is on we need 2D drag for snap-to-edge.
         axis: widget.multiEdgeEnabled ? null : Axis.horizontal,
-        child: Icon(
-          widget.isHorizontal ? Icons.drag_indicator : Icons.drag_handle,
-          size: 20,
-          // Light, to read on the dark bar.
-          color: const Color(0xFFC7D0E0),
-        ),
+        // Modern 2x3 dot grip, drawn inline (no asset) so it hot-reloads.
+        child: const _DragDots(color: Color(0xFFC7D0E0)),
         feedback: widget,
         onDragStarted: () {
           widget.markDragEpoch();
@@ -3381,10 +3402,14 @@ class _DraggableShowHideState extends State<_DraggableShowHide> {
   Widget build(BuildContext context) {
     final ButtonStyle buttonStyle = ButtonStyle(
       minimumSize: MaterialStateProperty.all(const Size(0, 0)),
-      padding: MaterialStateProperty.all(EdgeInsets.zero),
+      // Horizontal padding gives even gaps between the handle icons.
+      padding: MaterialStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 5)),
     );
     final isFullscreen = stateGlobal.fullscreen;
-    const double iconSize = 20;
+    // Handle icons (fullscreen / minimize / collapse-chevron) kept small so
+    // they match the drag-dot grip, not the larger main toolbar buttons.
+    const double iconSize = 12;
 
     buttonWrapper(VoidCallback? onPressed, Widget child,
         {Color hoverColor = _ToolbarTheme.blueColor}) {
@@ -3408,7 +3433,9 @@ class _DraggableShowHideState extends State<_DraggableShowHide> {
       direction: axis,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildDraggable(context),
+        Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: _buildDraggable(context)),
         Obx(() => collapse.isTrue
             ? _MinimizedMonitorSwitchButton(id: widget.id, ffi: widget.ffi)
             : const Offstage()),
@@ -3490,6 +3517,10 @@ class _DraggableShowHideState extends State<_DraggableShowHide> {
           ),
           borderRadius: widget.borderRadius,
         ),
+        // Breathing room around the drag / fullscreen / collapse icons.
+        padding: widget.isHorizontal
+            ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
+            : const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         // Light icon tint for every Icon in the handle (drag, minimize,
         // collapse...) so they read on the dark bar.
         child: IconTheme(
@@ -3645,5 +3676,30 @@ class _MinimizedMonitorSwitchButton extends StatelessWidget {
         ),
       );
     });
+  }
+}
+
+// Small 2x3 dot grip used as the toolbar drag handle. Drawn with widgets (no
+// SVG asset) so tweaks hot-reload without an asset re-bundle / restart.
+class _DragDots extends StatelessWidget {
+  final Color color;
+  const _DragDots({Key? key, required this.color}) : super(key: key);
+
+  Widget _dot() => Container(
+        width: 2.1,
+        height: 2.1,
+        margin: const EdgeInsets.all(1.15),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(
+        3,
+        (_) => Row(mainAxisSize: MainAxisSize.min, children: [_dot(), _dot()]),
+      ),
+    );
   }
 }

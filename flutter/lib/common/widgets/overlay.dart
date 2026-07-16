@@ -57,6 +57,7 @@ class DraggableChatWindow extends StatelessWidget {
             chatModel: chatModel,
             builder: (context, onPanUpdate) {
               final child = Scaffold(
+                backgroundColor: const Color(0xFF141A24),
                 resizeToAvoidBottomInset: false,
                 appBar: CustomAppBar(
                   onPanUpdate: onPanUpdate,
@@ -66,10 +67,40 @@ class DraggableChatWindow extends StatelessWidget {
                 ),
                 body: ChatPage(chatModel: chatModel),
               );
-              return Container(
-                  decoration:
-                      BoxDecoration(border: Border.all(color: MyTheme.border)),
-                  child: child);
+              // Dark chat window to match the floating toolbar. Derive from the
+              // ambient theme with copyWith so the app's ThemeExtensions
+              // (TabbarTheme etc., used by the header action icons) are
+              // preserved -- a bare ThemeData.dark() drops them and the header
+              // crashes on MyTheme.tabbar(context)!.
+              final base = Theme.of(context);
+              return Theme(
+                data: base.copyWith(
+                  scaffoldBackgroundColor: const Color(0xFF141A24),
+                  canvasColor: const Color(0xFF141A24),
+                  colorScheme: base.colorScheme.copyWith(
+                    brightness: Brightness.dark,
+                    surface: const Color(0xFF141A24),
+                    onSurface: const Color(0xFFE9EEFC),
+                    background: const Color(0xFF1B2230),
+                    onBackground: const Color(0xFFE9EEFC),
+                    primary: const Color(0xFF1246E6),
+                  ),
+                  textTheme: base.textTheme.apply(
+                    bodyColor: const Color(0xFFE9EEFC),
+                    displayColor: const Color(0xFFE9EEFC),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0x14FFFFFF)),
+                    ),
+                    child: child,
+                  ),
+                ),
+              );
             });
   }
 
