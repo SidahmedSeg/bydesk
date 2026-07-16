@@ -338,10 +338,15 @@ class _ToolbarTheme {
   static const double height = 20.0;
   static const double dividerHeight = 12.0;
 
-  static const double buttonSize = 36;
-  static const double buttonHMargin = 3;
+  static const double buttonSize = 34;
+  // Glyph size INSIDE the button. The ByDesk tb_*.svg icons fill their 24x24
+  // viewBox edge-to-edge (unlike RustDesk's originals, which had built-in
+  // margins), so rendering them at buttonSize made them look oversized. We
+  // render them smaller and centered, leaving padding inside each button.
+  static const double iconSize = 18;
+  static const double buttonHMargin = 2;
   static const double buttonVMargin = 6;
-  static const double iconRadius = 10;
+  static const double iconRadius = 9;
   static const double elevation = 6;
 
   static double dividerSpaceToAction = isWindows ? 8 : 14;
@@ -2821,11 +2826,13 @@ class _IconMenuButtonState extends State<_IconMenuButton> {
   Widget build(BuildContext context) {
     assert(widget.assetName != null || widget.icon != null);
     final icon = widget.icon ??
-        SvgPicture.asset(
-          widget.assetName!,
-          colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          width: _ToolbarTheme.buttonSize,
-          height: _ToolbarTheme.buttonSize,
+        Center(
+          child: SvgPicture.asset(
+            widget.assetName!,
+            colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+            width: _ToolbarTheme.iconSize,
+            height: _ToolbarTheme.iconSize,
+          ),
         );
     var button = SizedBox(
       width: widget.width ?? _ToolbarTheme.buttonSize,
@@ -2906,11 +2913,13 @@ class _IconSubmenuButtonState extends State<_IconSubmenuButton> {
   Widget build(BuildContext context) {
     assert(widget.svg != null || widget.icon != null);
     final icon = widget.icon ??
-        SvgPicture.asset(
-          widget.svg!,
-          colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          width: _ToolbarTheme.buttonSize,
-          height: _ToolbarTheme.buttonSize,
+        Center(
+          child: SvgPicture.asset(
+            widget.svg!,
+            colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+            width: _ToolbarTheme.iconSize,
+            height: _ToolbarTheme.iconSize,
+          ),
         );
     final button = SizedBox(
         width: widget.width ?? _ToolbarTheme.buttonSize,

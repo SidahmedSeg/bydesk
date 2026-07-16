@@ -249,7 +249,11 @@ const String kMsgboxTextWaitingForImage = 'Connected, waiting for image...';
 const String kEnvPortableExecutable = "RUSTDESK_APPNAME";
 
 const Color kColorWarn = Color.fromARGB(255, 245, 133, 59);
-const Color kColorCanvas = Colors.black;
+// Letterbox/backdrop behind the remote image. A neutral dark instead of pure
+// black so the bars an aspect-ratio-preserving fit leaves read as intentional
+// framing rather than "broken". (Eliminating them entirely would require
+// stretching the remote, which distorts it.)
+const Color kColorCanvas = Color(0xFF17181C);
 
 const int kMobileDefaultDisplayWidth = 720;
 const int kMobileDefaultDisplayHeight = 1280;
