@@ -334,20 +334,37 @@ class _ToolbarTheme {
 
   static const Color redColor = Colors.redAccent;
   static const Color hoverRedColor = Colors.red;
+
+  // ---- "Ghost / dark" toolbar treatment (tuned in Toolbar Studio) ----
+  // Dark bar, transparent buttons that fill brand-blue on hover, light icons
+  // that go white on hover. Semantic uses of blueColor (monitor highlights,
+  // pin-active) are left untouched -- only the standard action buttons and the
+  // bar surface adopt this treatment.
+  static const Color barColor = Color(0xFF141A24);
+  static const Color barBorderColorDark = Color(0x14FFFFFF); // white @ 8%
+  static const Color iconColor = Color(0xFFE9EEFC);
+  static const Color iconHoverColor = Colors.white;
+  static const Color buttonRestColor = Colors.transparent;
+  static const Color buttonHoverColor = Color(0xFF1246E6); // brand
+  static const Color pinRestColor = Color(0x14FFFFFF); // white @ 8%
+  static const Color pinHoverColor = Color(0x29FFFFFF); // white @ 16%
+  static const Color recordColor = Color(0xFFFF5A4D);
+  static const Color closeIconColor = Color(0xFFFF5A4D);
+  static const Color closeHoverColor = Color(0xFFF0453A);
+  static const Color dividerColorDark = Color(0x24FFFFFF); // white @ 14%
   // kMinInteractiveDimension
   static const double height = 20.0;
   static const double dividerHeight = 12.0;
 
-  static const double buttonSize = 34;
-  // Glyph size INSIDE the button. The ByDesk tb_*.svg icons fill their 24x24
-  // viewBox edge-to-edge (unlike RustDesk's originals, which had built-in
-  // margins), so rendering them at buttonSize made them look oversized. We
-  // render them smaller and centered, leaving padding inside each button.
-  static const double iconSize = 18;
-  static const double buttonHMargin = 2;
+  // Values from Toolbar Studio (Ghost / dark preset).
+  static const double buttonSize = 32;
+  // Glyph size INSIDE the button, centered, so it doesn't fill edge-to-edge.
+  static const double iconSize = 17;
+  static const double buttonHMargin = 1;
   static const double buttonVMargin = 6;
-  static const double iconRadius = 9;
+  static const double iconRadius = 12;
   static const double elevation = 6;
+  static const double barBorderRadius = 12;
 
   static double dividerSpaceToAction = isWindows ? 8 : 14;
 
@@ -384,8 +401,9 @@ class _ToolbarTheme {
       BuildContext context, Widget child, BorderRadius borderRadius) {
     return Container(
       decoration: BoxDecoration(
+        // Dark bar -> hairline light border (studio: white @ 8%).
         border: Border.all(
-          color: borderColor(context),
+          color: barBorderColorDark,
           width: 1,
         ),
         borderRadius: borderRadius,
@@ -810,8 +828,19 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
 
   Widget _buildToolbar(
       BuildContext context, _ToolbarEdge edge, bool isHorizontal) {
+    // Thin separator that matches the toolbar's flow axis (studio: dividers on).
+    Widget barDivider() => Container(
+          width: isHorizontal ? 1 : 16,
+          height: isHorizontal ? 16 : 1,
+          margin: isHorizontal
+              ? const EdgeInsets.symmetric(horizontal: 3)
+              : const EdgeInsets.symmetric(vertical: 3),
+          color: _ToolbarTheme.dividerColorDark,
+        );
+
     final List<Widget> toolbarItems = [];
     toolbarItems.add(_PinMenu(state: widget.state));
+    toolbarItems.add(barDivider());
     toolbarItems.add(Obx(() {
       final privacyModeState = PrivacyModeState.find(widget.id);
       if ((privacyModeState.isEmpty ||
@@ -861,8 +890,10 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
       toolbarItems.add(_VoiceCallMenu(id: widget.id, ffi: widget.ffi));
     }
     if (!isWeb) toolbarItems.add(_RecordMenu());
+    toolbarItems.add(barDivider());
     toolbarItems.add(_CloseMenu(id: widget.id, ffi: widget.ffi));
-    final toolbarBorderRadius = BorderRadius.all(Radius.circular(14.0));
+    final toolbarBorderRadius =
+        BorderRadius.all(Radius.circular(_ToolbarTheme.barBorderRadius));
     // innerAxis: how the toolbar icons themselves flow.
     // outerAxis: how the toolbar block and the handle stack against each other
     // (perpendicular to the dock edge, so the handle hangs off the interior face).
@@ -875,11 +906,7 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
       elevation: _ToolbarTheme.elevation,
       shadowColor: MyTheme.color(context).shadow,
       borderRadius: toolbarBorderRadius,
-      color: Theme.of(context)
-          .menuBarTheme
-          .style
-          ?.backgroundColor
-          ?.resolve(MaterialState.values.toSet()),
+      color: _ToolbarTheme.barColor,
       child: SingleChildScrollView(
         scrollDirection: innerAxis,
         child: Theme(
@@ -950,14 +977,16 @@ class _PinMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(
       () => _IconMenuButton(
-        assetName: state.pin ? "assets/pinned.svg" : "assets/unpinned.svg",
+        assetName: state.pin ? "assets/tb_pin_on.svg" : "assets/tb_pin.svg",
         tooltip: state.pin ? 'Unpin Toolbar' : 'Pin Toolbar',
         onPressed: state.switchPin,
-        color:
-            state.pin ? _ToolbarTheme.blueColor : _ToolbarTheme.inactiveColor,
+        // Pinned = brand-blue active fill; unpinned = subtle white-alpha chip.
+        color: state.pin
+            ? _ToolbarTheme.buttonHoverColor
+            : _ToolbarTheme.pinRestColor,
         hoverColor: state.pin
-            ? _ToolbarTheme.hoverBlueColor
-            : _ToolbarTheme.hoverInactiveColor,
+            ? _ToolbarTheme.buttonHoverColor
+            : _ToolbarTheme.pinHoverColor,
       ),
     );
   }
@@ -1033,8 +1062,8 @@ class _MainMonitorSwitchButton extends StatelessWidget {
 
       return _IconMenuButton(
         tooltip: cycle.tooltip,
-        color: _ToolbarTheme.blueColor,
-        hoverColor: _ToolbarTheme.hoverBlueColor,
+        color: _ToolbarTheme.buttonRestColor,
+        hoverColor: _ToolbarTheme.buttonHoverColor,
         onPressed: cycle.next,
         icon: SizedBox(
           width: _ToolbarTheme.buttonSize,
@@ -1108,8 +1137,8 @@ class _MonitorMenu extends StatelessWidget {
         icon: monitorsIcon,
         ffi: ffi,
         width: width.value,
-        color: _ToolbarTheme.blueColor,
-        hoverColor: _ToolbarTheme.hoverBlueColor,
+        color: _ToolbarTheme.buttonRestColor,
+        hoverColor: _ToolbarTheme.buttonHoverColor,
         menuStyle: MenuStyle(
             padding:
                 MaterialStatePropertyAll(EdgeInsets.symmetric(horizontal: 6))),
@@ -1322,8 +1351,8 @@ class _ControlMenu extends StatelessWidget {
     return _IconSubmenuButton(
         tooltip: 'Control Actions',
         svg: "assets/tb_more.svg",
-        color: _ToolbarTheme.blueColor,
-        hoverColor: _ToolbarTheme.hoverBlueColor,
+        color: _ToolbarTheme.buttonRestColor,
+        hoverColor: _ToolbarTheme.buttonHoverColor,
         ffi: ffi,
         menuChildrenGetter: (_) => toolbarControls(context, id, ffi).map((e) {
               if (e.divider) {
@@ -1598,10 +1627,10 @@ class _DisplayMenuState extends State<_DisplayMenu> {
 
     return _IconSubmenuButton(
       tooltip: 'Display Settings',
-      svg: "assets/display.svg",
+      svg: "assets/tb_display.svg",
       ffi: widget.ffi,
-      color: _ToolbarTheme.blueColor,
-      hoverColor: _ToolbarTheme.hoverBlueColor,
+      color: _ToolbarTheme.buttonRestColor,
+      hoverColor: _ToolbarTheme.buttonHoverColor,
       menuChildrenGetter: menuChildrenGetter,
     );
   }
@@ -2347,10 +2376,10 @@ class _KeyboardMenu extends StatelessWidget {
 
     return _IconSubmenuButton(
         tooltip: 'Keyboard Settings',
-        svg: "assets/keyboard_mouse.svg",
+        svg: "assets/tb_keyboard.svg",
         ffi: ffi,
-        color: _ToolbarTheme.blueColor,
-        hoverColor: _ToolbarTheme.hoverBlueColor,
+        color: _ToolbarTheme.buttonRestColor,
+        hoverColor: _ToolbarTheme.buttonHoverColor,
         menuChildrenGetter: (_) => [
               keyboardMode(),
               localKeyboardType(),
@@ -2617,8 +2646,8 @@ class _ChatMenuState extends State<_ChatMenu> {
       tooltip: 'Chat',
       key: chatButtonKey,
       onPressed: _textChatOnPressed,
-      color: _ToolbarTheme.blueColor,
-      hoverColor: _ToolbarTheme.hoverBlueColor,
+      color: _ToolbarTheme.buttonRestColor,
+      hoverColor: _ToolbarTheme.buttonHoverColor,
     );
   }
 
@@ -2654,8 +2683,8 @@ class _CallMenu extends StatelessWidget {
         assetName: 'assets/tb_call.svg',
         tooltip: 'Voice call',
         onPressed: () => bind.sessionRequestVoiceCall(sessionId: ffi.sessionId),
-        color: _ToolbarTheme.blueColor,
-        hoverColor: _ToolbarTheme.hoverBlueColor,
+        color: _ToolbarTheme.buttonRestColor,
+        hoverColor: _ToolbarTheme.buttonHoverColor,
       );
     });
   }
@@ -2718,8 +2747,8 @@ class _VoiceCallMenu extends StatelessWidget {
             return _IconSubmenuButton(
               tooltip: 'Voice call',
               svg: 'assets/tb_call_slash.svg',
-              color: _ToolbarTheme.blueColor,
-              hoverColor: _ToolbarTheme.hoverBlueColor,
+              color: _ToolbarTheme.buttonRestColor,
+              hoverColor: _ToolbarTheme.buttonHoverColor,
               menuChildrenGetter: menuChildrenGetter,
               ffi: ffi,
             );
@@ -2751,18 +2780,19 @@ class _RecordMenu extends StatelessWidget {
     final visible =
         (recordingModel.start || ffi.permissions['recording'] != false);
     if (!visible) return Offstage();
+    final recording = recordingModel.start;
     return _IconMenuButton(
       assetName: 'assets/tb_record.svg',
-      tooltip: recordingModel.start
+      tooltip: recording
           ? 'Stop session recording'
           : 'Start session recording',
       onPressed: () => recordingModel.toggle(),
-      color: recordingModel.start
-          ? _ToolbarTheme.redColor
-          : _ToolbarTheme.blueColor,
-      hoverColor: recordingModel.start
-          ? _ToolbarTheme.hoverRedColor
-          : _ToolbarTheme.hoverBlueColor,
+      // Idle: transparent chip, red glyph. Recording: red fill, white glyph.
+      color: recording ? _ToolbarTheme.recordColor : _ToolbarTheme.buttonRestColor,
+      hoverColor:
+          recording ? _ToolbarTheme.closeHoverColor : _ToolbarTheme.recordColor,
+      iconColor: recording ? Colors.white : _ToolbarTheme.recordColor,
+      iconHoverColor: Colors.white,
     );
   }
 }
@@ -2776,7 +2806,7 @@ class _CloseMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _IconMenuButton(
-      assetName: 'assets/close.svg',
+      assetName: 'assets/tb_close.svg',
       tooltip: 'Close',
       onPressed: () async {
         if (await showConnEndAuditDialogCloseCanceled(ffi: ffi)) {
@@ -2784,8 +2814,11 @@ class _CloseMenu extends StatelessWidget {
         }
         closeConnection(id: id);
       },
-      color: _ToolbarTheme.redColor,
-      hoverColor: _ToolbarTheme.hoverRedColor,
+      // Transparent with a red glyph; fills red (white glyph) on hover.
+      color: _ToolbarTheme.buttonRestColor,
+      hoverColor: _ToolbarTheme.closeHoverColor,
+      iconColor: _ToolbarTheme.closeIconColor,
+      iconHoverColor: Colors.white,
     );
   }
 }
@@ -2801,6 +2834,11 @@ class _IconMenuButton extends StatefulWidget {
   final double? vMargin;
   final bool topLevel;
   final double? width;
+  // Ghost model: glyph tint at rest / on hover. Defaults come from the theme
+  // (light icon -> white on hover); overrides let the record/close buttons stay
+  // red without changing their background treatment.
+  final Color? iconColor;
+  final Color? iconHoverColor;
   const _IconMenuButton({
     Key? key,
     this.assetName,
@@ -2813,6 +2851,8 @@ class _IconMenuButton extends StatefulWidget {
     this.vMargin,
     this.topLevel = true,
     this.width,
+    this.iconColor,
+    this.iconHoverColor,
   }) : super(key: key);
 
   @override
@@ -2825,11 +2865,14 @@ class _IconMenuButtonState extends State<_IconMenuButton> {
   @override
   Widget build(BuildContext context) {
     assert(widget.assetName != null || widget.icon != null);
+    final glyphColor = hover
+        ? (widget.iconHoverColor ?? _ToolbarTheme.iconHoverColor)
+        : (widget.iconColor ?? _ToolbarTheme.iconColor);
     final icon = widget.icon ??
         Center(
           child: SvgPicture.asset(
             widget.assetName!,
-            colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+            colorFilter: ColorFilter.mode(glyphColor, BlendMode.srcIn),
             width: _ToolbarTheme.iconSize,
             height: _ToolbarTheme.iconSize,
           ),
@@ -2883,6 +2926,8 @@ class _IconSubmenuButton extends StatefulWidget {
   final MenuStyle? menuStyle;
   final FFI? ffi;
   final double? width;
+  final Color? iconColor;
+  final Color? iconHoverColor;
 
   _IconSubmenuButton({
     Key? key,
@@ -2895,6 +2940,8 @@ class _IconSubmenuButton extends StatefulWidget {
     this.ffi,
     this.menuStyle,
     this.width,
+    this.iconColor,
+    this.iconHoverColor,
   }) : super(key: key);
 
   @override
@@ -2912,11 +2959,14 @@ class _IconSubmenuButtonState extends State<_IconSubmenuButton> {
   @override
   Widget build(BuildContext context) {
     assert(widget.svg != null || widget.icon != null);
+    final glyphColor = hover
+        ? (widget.iconHoverColor ?? _ToolbarTheme.iconHoverColor)
+        : (widget.iconColor ?? _ToolbarTheme.iconColor);
     final icon = widget.icon ??
         Center(
           child: SvgPicture.asset(
             widget.svg!,
-            colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+            colorFilter: ColorFilter.mode(glyphColor, BlendMode.srcIn),
             width: _ToolbarTheme.iconSize,
             height: _ToolbarTheme.iconSize,
           ),
@@ -3303,7 +3353,8 @@ class _DraggableShowHideState extends State<_DraggableShowHide> {
         child: Icon(
           widget.isHorizontal ? Icons.drag_indicator : Icons.drag_handle,
           size: 20,
-          color: MyTheme.color(context).drag_indicator,
+          // Light, to read on the dark bar.
+          color: const Color(0xFFC7D0E0),
         ),
         feedback: widget,
         onDragStarted: () {
@@ -3372,8 +3423,8 @@ class _DraggableShowHideState extends State<_DraggableShowHide> {
                   'assets/tb_fullscreen.svg',
                   width: iconSize,
                   height: iconSize,
-                  colorFilter: ColorFilter.mode(
-                    Theme.of(context).iconTheme.color ?? Colors.white,
+                  colorFilter: const ColorFilter.mode(
+                    Color(0xFFC7D0E0),
                     BlendMode.srcIn,
                   ),
                 ),
@@ -3430,22 +3481,24 @@ class _DraggableShowHideState extends State<_DraggableShowHide> {
     return TextButtonTheme(
       data: TextButtonThemeData(style: buttonStyle),
       child: Container(
+        // Match the dark bar so the drag handle reads as one piece with it.
         decoration: BoxDecoration(
-          color: Theme.of(context)
-              .menuBarTheme
-              .style
-              ?.backgroundColor
-              ?.resolve(MaterialState.values.toSet()),
+          color: _ToolbarTheme.barColor,
           border: Border.all(
-            color: _ToolbarTheme.borderColor(context),
+            color: _ToolbarTheme.barBorderColorDark,
             width: 1,
           ),
           borderRadius: widget.borderRadius,
         ),
-        child: SizedBox(
-          height: widget.isHorizontal ? 20 : null,
-          width: widget.isHorizontal ? null : 20,
-          child: child,
+        // Light icon tint for every Icon in the handle (drag, minimize,
+        // collapse...) so they read on the dark bar.
+        child: IconTheme(
+          data: const IconThemeData(color: Color(0xFFC7D0E0)),
+          child: SizedBox(
+            height: widget.isHorizontal ? 20 : null,
+            width: widget.isHorizontal ? null : 20,
+            child: child,
+          ),
         ),
       ),
     );
